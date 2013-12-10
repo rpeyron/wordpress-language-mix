@@ -54,35 +54,46 @@ add_action('init', 'pllx_init');
 function pllx_posts_where($where) {
     global $polylang;
 
-    if (preg_match("/post_type = 'post'/", $where)) {
-        $languages = array();
-        $slugs     = pllx_enabled_languages();
+    if (preg_match("/post_type = 'post'/", $where) && !is_tax('language')) {
+        $slugs = pllx_enabled_languages();
 
-        foreach ($slugs as $slug) {
-            $languages[] = (int)$polylang->model->get_language($slug)->term_taxonomy_id;
-        }
+        if (count($slugs) > 0) {
 
-        if ((count($languages) > 0) && preg_match('/\.term_taxonomy_id IN \(([^\)]*)\)/', $where, $matches)) {
-            $sql_terms = explode(',', $matches[1]);
+            if (is_home()) { # TODO + for all post list / custom queries?
+                $languages = array();
 
-            if ((count($sql_terms) == 1) && ($term = pllx_get_term_taxonomy($sql_terms[0]))) {
-                if ($term->taxonomy == 'language') {
-                    return preg_replace('/\.term_taxonomy_id IN \([^\)]*\)/', '.term_taxonomy_id IN (' . implode(',', $languages) . ')', $where);
-                } else {
-                    $terms = $polylang->model->get_translations('term', $sql_terms[0]);
-                    if (in_array(intval($sql_terms[0]), $terms)) {
-                        $languages = array();
+                foreach ($slugs as $slug) {
+                    $languages[] = (int)$polylang->model->get_language($slug)->term_taxonomy_id;
+                }
 
-                        foreach ($slugs as $slug) {
-                            if (isset($terms[$slug])) {
-                                $languages[] = $terms[$slug];
+                return preg_replace('/\.term_taxonomy_id IN \([^\)]*\)/', '.term_taxonomy_id IN (' . implode(',', $languages) . ')', $where);
+
+            } else if (is_category() || is_tag() || is_tax()) {
+                $taxonomy_ids = array();
+
+                $term         = get_queried_object();
+                $taxonomy     = $term->taxonomy;
+                $translations = $polylang->model->get_translations('term', $term->term_id);
+
+                foreach ($translations as $language => $term_id) {
+                    $term = get_term($term_id, $taxonomy);
+                    if ($term) {
+                        $taxonomy_ids[] = $term->term_taxonomy_id;
+
+                        $term_children  = get_term_children($term_id, $taxonomy);
+
+                        foreach ($term_children as $term_child) {
+                            $term = get_term($term_child, $taxonomy);
+                            if ($term) {
+                                $taxonomy_ids[] = $term->term_taxonomy_id;
                             }
                         }
-
-                        return preg_replace('/\.term_taxonomy_id IN \([^\)]*\)/', '.term_taxonomy_id IN (' . implode(',', $languages) . ')', $where);
                     }
                 }
+
+                return preg_replace('/\.term_taxonomy_id IN \([^\)]*\)/', '.term_taxonomy_id IN (' . implode(',', $taxonomy_ids) . ')', $where);
             }
+
         }
     }
 
