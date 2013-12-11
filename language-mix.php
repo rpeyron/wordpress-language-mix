@@ -48,6 +48,16 @@ function pllx_init() {
 }
 add_action('init', 'pllx_init');
 
+require(plugin_dir_path(__FILE__) . 'widgets/languages.php');
+
+/**
+ * Registers widget(s)
+ */
+function pllx_widgets_init() {
+    register_widget('WP_Widget_Languages');
+}
+add_action('widgets_init', 'pllx_widgets_init');
+
 /**
  * Modifies the SQL query for posts
  */
@@ -69,29 +79,12 @@ function pllx_posts_where($where) {
                 return preg_replace('/\.term_taxonomy_id IN \([^\)]*\)/', '.term_taxonomy_id IN (' . implode(',', $languages) . ')', $where);
 
             } else if (is_category() || is_tag() || is_tax()) {
-                $taxonomy_ids = array();
-
                 $term         = get_queried_object();
-                $taxonomy     = $term->taxonomy;
-                $translations = $polylang->model->get_translations('term', $term->term_id);
+                $translations = pllx_get_translations_with_children($term->term_id, $term->taxonomy);
 
-                foreach ($translations as $language => $term_id) {
-                    $term = get_term($term_id, $taxonomy);
-                    if ($term) {
-                        $taxonomy_ids[] = $term->term_taxonomy_id;
-
-                        $term_children  = get_term_children($term_id, $taxonomy);
-
-                        foreach ($term_children as $term_child) {
-                            $term = get_term($term_child, $taxonomy);
-                            if ($term) {
-                                $taxonomy_ids[] = $term->term_taxonomy_id;
-                            }
-                        }
-                    }
+                if (count($translations) > 0) {
+                    return preg_replace('/\.term_taxonomy_id IN \([^\)]*\)/', '.term_taxonomy_id IN (' . implode(',', $translations) . ')', $where);
                 }
-
-                return preg_replace('/\.term_taxonomy_id IN \([^\)]*\)/', '.term_taxonomy_id IN (' . implode(',', $taxonomy_ids) . ')', $where);
             }
 
         }
@@ -108,8 +101,33 @@ function pllx_nav_menu_objects($items) {
     global $locale;
     global $polylang;
 
+    $queried_object = get_queried_object();
+
+    $item_selected = false;
+    foreach ($items as $item) {
+        if ($item->current) {
+            $item_selected = true;
+            break;
+        }
+    }
+
+    $categories = array();
+    if ($item_selected == false) {
+        if (is_category()) {
+            $categories = pllx_get_translations_with_parents($queried_object->cat_ID);
+        } else if (is_single() && ($queried_object->post_type == 'post')) {
+            $post_categories = wp_get_post_categories($queried_object->ID);
+            foreach ($post_categories as $category_id) {
+                $categories = array_merge($categories, pllx_get_translations_with_parents($category_id));
+            }
+            $categories = array_unique($categories);
+        }
+    }
+
     foreach ($items as &$item) {
-        if ($item->object == 'category') {
+        if ($item->object == 'page') {
+            # TODO translate + current-menu-item
+        } else if ($item->object == 'category') {
             $category = get_term($item->object_id, 'category');
             if ($category) {
                 $language = $polylang->model->get_term_language($item->object_id);
@@ -123,6 +141,13 @@ function pllx_nav_menu_objects($items) {
                     }
                 }
             }
+            if (($item_selected == false) && !empty($categories)) {
+                if (is_category() || is_single()) {
+                    if (in_array($item->object_id, $categories)) {
+                        $item->classes[] = 'current-menu-item';
+                    }
+                }
+            }
         }
     }
     unset($item);
@@ -130,6 +155,81 @@ function pllx_nav_menu_objects($items) {
     return $items;
 }
 add_filter('wp_nav_menu_objects', 'pllx_nav_menu_objects');
+
+/**
+ * Showing empty categories by default (as their translations can contain posts)
+ */
+function pllx_widget_categories_args($args) {
+    $args['hide_empty'] = 0;
+
+    return $args;
+}
+add_filter('widget_categories_dropdown_args', 'pllx_widget_categories_args');
+add_filter('widget_categories_args',          'pllx_widget_categories_args');
+
+/**
+ * Get all translations of the term (including children)
+ */
+function pllx_get_translations_with_children($term_id, $taxonomy) {
+    global $polylang;
+
+    $translations      = array();
+    $term_translations = $polylang->model->get_translations('term', $term_id);
+
+    foreach ($term_translations as $language => $term_id) {
+        $term = get_term($term_id, $taxonomy);
+        if ($term) {
+            $translations[] = $term->term_taxonomy_id;
+
+            $term_children  = get_term_children($term_id, $taxonomy);
+
+            foreach ($term_children as $term_child) {
+                $term = get_term($term_child, $taxonomy);
+                if ($term) {
+                    $translations[] = $term->term_taxonomy_id;
+                }
+            }
+        }
+    }
+
+    return $translations;
+}
+
+/**
+ * Get all translations of the category (including parents)
+ */
+function pllx_get_translations_with_parents($category_id) {
+    global $polylang;
+
+    $translations      = array();
+    $cat_translations = $polylang->model->get_translations('term', $category_id);
+
+    foreach ($cat_translations as $language => $cat_id) {
+        $translations[] = $cat_id;
+        $translations   = array_merge($translations, pllx_get_category_parents($cat_id));
+    }
+
+    return $translations;
+}
+
+/**
+ * Merges all category parents into a single array
+ */
+function pllx_get_category_parents($id, $visited = array()) {
+    $parents = array();
+    $parent  = get_category($id);
+
+    if (!is_wp_error($parent)) {
+        if ($parent->parent && ($parent->parent != $parent->term_id) && !in_array($parent->parent, $visited)) {
+            $visited[] = $parent->parent;
+            $parents   = array_merge($parents, pllx_get_category_parents($parent->parent, $visited));
+        }
+
+        $parents[] = $parent->term_id;
+    }
+
+    return $parents;
+}
 
 /**
  * Parses the Accept-Language header
