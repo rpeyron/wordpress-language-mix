@@ -15,7 +15,7 @@ class WP_Widget_Languages extends WP_Widget {
     /**
      * Front-end display of widget
      */
-    public function widget($args, $instance) {
+    public function widget($args, $instance) { # TODO
         extract($args);
         $title = apply_filters('widget_title', empty($instance['title']) ? __('Languages', 'language-mix') : $instance['title'], $instance, $this->id_base);
         ?>

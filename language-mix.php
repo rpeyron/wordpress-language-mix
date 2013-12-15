@@ -168,6 +168,27 @@ add_filter('widget_categories_dropdown_args', 'pllx_widget_categories_args');
 add_filter('widget_categories_args',          'pllx_widget_categories_args');
 
 /**
+ * Relaces the front page with the corresponding translation
+ */
+function pllx_get_page_on_front($post_id) {
+    global $locale;
+    global $polylang;
+
+    if ($post_id) {
+        $language = $polylang->model->get_post_language($post_id);
+        if ($language && ($language->locale != $locale)) {
+            $translated_id = pll_get_post($post_id, $locale);
+            if ($translated_id) {
+                return $translated_id;
+            }
+        }
+    }
+
+    return $post_id;
+}
+add_filter('option_page_on_front', 'pllx_get_page_on_front');
+
+/**
  * Get all translations of the term (including children)
  */
 function pllx_get_translations_with_children($term_id, $taxonomy) {
