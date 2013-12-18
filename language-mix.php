@@ -26,24 +26,23 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-define('PLLX_COOKIE', 'pllx_languages');
-
-# TODO Widget suggesting to enable/disable languages
+define('PLLX_COOKIE',    'pllx_languages');
+define('PLLX_PARAMETER', 'pllx_language');
 
 /**
  * Handles POST requests
  */
 function pllx_init() {
-    if (isset($_POST['language']) && is_array($_POST['language'])) { # FIXME: more checks? or move
-        $languages_cookie = implode(',', $_POST['language']);
-        if (!empty($languages_cookie)) {
+    if (isset($_POST[PLLX_PARAMETER])) {
+        if (is_array($_POST[PLLX_PARAMETER]) && !empty($_POST[PLLX_PARAMETER])) {
+            $languages_cookie = implode(',', $_POST[PLLX_PARAMETER]);
+            # FIXME verify languages
             setcookie(PLLX_COOKIE, $languages_cookie, time() + (10 * 365 * 86400), COOKIEPATH, COOKIE_DOMAIN);
             $_COOKIE[PLLX_COOKIE] = $languages_cookie;
-            # TODO Set message
+        } else {
+            setcookie(PLLX_COOKIE, '', time() - 3600, COOKIEPATH, COOKIE_DOMAIN);
+            unset($_COOKIE[PLLX_COOKIE]);
         }
-        # TODO Clear cookie
-        #setcookie(PLLX_COOKIE, '', time() - 3600, 0, COOKIEPATH, COOKIE_DOMAIN);
-        #unset($_COOKIE[PLLX_COOKIE]);
     }
 }
 add_action('init', 'pllx_init');
