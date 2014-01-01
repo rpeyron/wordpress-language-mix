@@ -48,12 +48,14 @@ function pllx_init() {
 add_action('init', 'pllx_init');
 
 require(plugin_dir_path(__FILE__) . 'widgets/languages.php');
+require(plugin_dir_path(__FILE__) . 'widgets/translations.php');
 
 /**
  * Registers widget(s)
  */
 function pllx_widgets_init() {
     register_widget('WP_Widget_Languages');
+    register_widget('WP_Widget_Translations');
 }
 add_action('widgets_init', 'pllx_widgets_init');
 
