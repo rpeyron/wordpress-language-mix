@@ -28,8 +28,8 @@ class WP_Widget_Languages extends WP_Widget {
             <input type="hidden" name="<?php echo PLLX_PARAMETER; ?>" value="" />
             <?php foreach ($polylang->model->get_languages_list() as $language): ?>
               <label>
-                <input type="checkbox" class="checkbox" name="<?php echo PLLX_PARAMETER; ?>[]" value="<?php esc_attr_e($language->slug); ?>" <?php if (in_array($language->slug, $enabled_languages)) { echo 'checked="checked"'; } ?> />
-                <?php echo $language->flag; ?> <?php esc_html_e($language->name); ?>
+                <input type="checkbox" class="checkbox" name="<?php echo PLLX_PARAMETER; ?>[]" value="<?php echo esc_attr($language->slug); ?>" <?php if (in_array($language->slug, $enabled_languages)) { echo 'checked="checked"'; } ?> />
+                <?php echo $language->flag; ?> <?php echo esc_html($language->name); ?>
               </label><br />
             <?php endforeach; ?>
           </p>
@@ -57,8 +57,8 @@ class WP_Widget_Languages extends WP_Widget {
         $instance = wp_parse_args((array)$instance, array('title' => ''));
         ?>
         <p>
-          <label for="<?php esc_attr_e($this->get_field_id('title')); ?>"><?php _e('Title'); ?>:</label>
-          <input class="widefat" id="<?php esc_attr_e($this->get_field_id('title')); ?>" name="<?php esc_attr_e($this->get_field_name('title')); ?>" type="text" value="<?php esc_attr_e($instance['title']); ?>" />
+          <label for="<?php echo esc_attr($this->get_field_id('title')); ?>"><?php _e('Title'); ?>:</label>
+          <input class="widefat" id="<?php echo esc_attr($this->get_field_id('title')); ?>" name="<?php echo esc_attr($this->get_field_name('title')); ?>" type="text" value="<?php echo esc_attr($instance['title']); ?>" />
         </p>
         <?php
     }

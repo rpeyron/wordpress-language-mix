@@ -32,8 +32,8 @@ class WP_Widget_Translations extends WP_Widget {
                       <?php if (isset($translations[$language->slug]) && ($translations[$language->slug] != $queried_object->ID)): ?>
                         <li>
                           <?php echo $language->flag; ?>
-                          <a hreflang="<?php echo $language->slug; ?>" href="<?php echo get_permalink($translations[$language->slug]); ?>" title="<?php esc_attr_e(get_the_title($translations[$language->slug])); ?>">
-                            <?php esc_html_e($language->name); ?>
+                          <a hreflang="<?php echo $language->slug; ?>" href="<?php echo get_permalink($translations[$language->slug]); ?>" title="<?php echo esc_attr(get_the_title($translations[$language->slug])); ?>">
+                            <?php echo esc_html($language->name); ?>
                           </a>
                         </li>
                       <?php endif; ?>
@@ -62,8 +62,8 @@ class WP_Widget_Translations extends WP_Widget {
         $instance = wp_parse_args((array)$instance, array('title' => ''));
         ?>
         <p>
-          <label for="<?php esc_attr_e($this->get_field_id('title')); ?>"><?php _e('Title'); ?>:</label>
-          <input class="widefat" id="<?php esc_attr_e($this->get_field_id('title')); ?>" name="<?php esc_attr_e($this->get_field_name('title')); ?>" type="text" value="<?php esc_attr_e($instance['title']); ?>" />
+          <label for="<?php echo esc_attr($this->get_field_id('title')); ?>"><?php _e('Title'); ?>:</label>
+          <input class="widefat" id="<?php echo esc_attr($this->get_field_id('title')); ?>" name="<?php echo esc_attr($this->get_field_name('title')); ?>" type="text" value="<?php echo esc_attr($instance['title']); ?>" />
         </p>
         <?php
     }
