@@ -1,16 +1,16 @@
 <?php
 /**
  * Plugin Name: Language Mix
- * Plugin URI: http://projects.andriylesyuk.com/projects/language-mix
- * Description: TODO
- * Version: 1.0b
+ * Plugin URI: http://projects.andriylesyuk.com/project/wordpress/language-mix
+ * Description: This plugin unhides contents which are in languages you speak.
+ * Version: 1.0
  * Author: Andriy Lesyuk
- * Author URI: http://blog.andriylesyuk.com
+ * Author URI: http://www.andriylesyuk.com
  * License: GPL2
  */
 
 /**
- * Copyright 2013 Andriy Lesyuk (email:s-andy@andriylesyuk.com)
+ * Copyright 2014 Andriy Lesyuk (email:s-andy@andriylesyuk.com)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2, as 
@@ -29,16 +29,49 @@
 define('PLLX_COOKIE',    'pllx_languages');
 define('PLLX_PARAMETER', 'pllx_language');
 
+define('PLL_PLUGIN_NAME', 'polylang/polylang.php');
+
+require_once(ABSPATH . 'wp-admin/includes/plugin.php');
+
+/**
+ * Iterrupt plugin activation if Polylang is not activated/installed
+ */
+function pllx_check_polylang($network_wide) {
+    if (!is_plugin_active(PLL_PLUGIN_NAME)) {
+        deactivate_plugins(plugin_basename(__FILE__));
+        wp_die(__('Language Mix plugin requires Polylang to be installed and activated.', 'language-mix'));
+    }
+}
+register_activation_hook(__FILE__, 'pllx_check_polylang');
+
+/**
+ * Deactivates Language Mix if Polylang is not active
+ */
+function pllx_admin_init() {
+    if (!is_plugin_active(PLL_PLUGIN_NAME)) {
+        deactivate_plugins(plugin_basename(__FILE__));
+    }
+}
+add_action('admin_init', 'pllx_admin_init');
+
 /**
  * Handles POST requests
  */
 function pllx_init() {
-    if (isset($_POST[PLLX_PARAMETER])) {
+    global $polylang;
+    if ($polylang && isset($_POST[PLLX_PARAMETER])) {
         if (is_array($_POST[PLLX_PARAMETER]) && !empty($_POST[PLLX_PARAMETER])) {
-            $languages_cookie = implode(',', $_POST[PLLX_PARAMETER]);
-            # FIXME verify languages
-            setcookie(PLLX_COOKIE, $languages_cookie, time() + (10 * 365 * 86400), COOKIEPATH, COOKIE_DOMAIN);
-            $_COOKIE[PLLX_COOKIE] = $languages_cookie;
+            $languages = array();
+            foreach ($polylang->model->get_languages_list() as $language) {
+                if (in_array($language->slug, $_POST[PLLX_PARAMETER])) {
+                    $languages[] = $language->slug;
+                }
+            }
+            if (!empty($languages)) {
+                $languages_cookie = implode(',', $languages);
+                setcookie(PLLX_COOKIE, $languages_cookie, time() + (10 * 365 * 86400), COOKIEPATH, COOKIE_DOMAIN);
+                $_COOKIE[PLLX_COOKIE] = $languages_cookie;
+            }
         } else {
             setcookie(PLLX_COOKIE, '', time() - 3600, COOKIEPATH, COOKIE_DOMAIN);
             unset($_COOKIE[PLLX_COOKIE]);
@@ -65,12 +98,12 @@ add_action('widgets_init', 'pllx_widgets_init');
 function pllx_posts_where($where) {
     global $polylang;
 
-    if (preg_match("/post_type = 'post'/", $where) && !is_tax('language')) {
+    if ($polylang && preg_match("/post_type = 'post'/", $where) && !is_tax('language')) {
         $slugs = pllx_enabled_languages();
 
         if (count($slugs) > 0) {
 
-            if (is_home()) { # TODO + for all post list / custom queries?
+            if (is_home()) {
                 $languages = array();
 
                 foreach ($slugs as $slug) {
@@ -112,10 +145,13 @@ function pllx_nav_menu_objects($items) {
         }
     }
 
+    $pages      = array();
     $categories = array();
     if ($item_selected == false) {
         if (is_category()) {
             $categories = pllx_get_translations_with_parents($queried_object->cat_ID);
+        } else if (is_page()) {
+            $pages = $polylang->model->get_translations('page', $queried_object->ID);
         } else if (is_single() && ($queried_object->post_type == 'post')) {
             $post_categories = wp_get_post_categories($queried_object->ID);
             foreach ($post_categories as $category_id) {
@@ -127,7 +163,27 @@ function pllx_nav_menu_objects($items) {
 
     foreach ($items as &$item) {
         if ($item->object == 'page') {
-            # TODO translate + current-menu-item
+            $page = get_post($item->object_id);
+            if ($page) {
+                $language = $polylang->model->get_post_language($item->object_id);
+                if ($language && ($language->locale != $locale)) {
+                    $translation_id = pll_get_post($item->object_id, $locale);
+                    if ($translation_id) {
+                        $page = get_post($translation_id);
+                        if ($page) {
+                            $item->title = $page->post_title;
+                        }
+                    }
+                }
+            }
+            if ($item_selected == false) {
+                if (is_page()) {
+                    if (in_array($item->object_id, $pages)) {
+                        $item->classes[] = 'current-menu-item';
+                        $item_selected = true;
+                    }
+                }
+            }
         } else if ($item->object == 'category') {
             $category = get_term($item->object_id, 'category');
             if ($category) {
@@ -146,6 +202,7 @@ function pllx_nav_menu_objects($items) {
                 if (is_category() || is_single()) {
                     if (in_array($item->object_id, $categories)) {
                         $item->classes[] = 'current-menu-item';
+                        $item_selected = true;
                     }
                 }
             }
@@ -175,7 +232,7 @@ function pllx_get_page_on_front($post_id) {
     global $locale;
     global $polylang;
 
-    if ($post_id) {
+    if ($polylang && $post_id) {
         $language = $polylang->model->get_post_language($post_id);
         if ($language && ($language->locale != $locale)) {
             $translated_id = pll_get_post($post_id, $locale);
@@ -188,6 +245,23 @@ function pllx_get_page_on_front($post_id) {
     return $post_id;
 }
 add_filter('option_page_on_front', 'pllx_get_page_on_front');
+
+/**
+ * Looks for translations for the category featured post
+ */
+function pllx_category_featured_post($post_id, $term_id) {
+    global $polylang;
+    if ($polylang && !$post_id) {
+        $translations = $polylang->model->get_translations('term', $term_id);
+        foreach ($translations as $language => $term_id) {
+            if ($post_id = get_category_featured_post($term_id)) {
+                break;
+            }
+        }
+    }
+    return $post_id;
+}
+add_filter('get_category_featured_post', 'pllx_category_featured_post', 10, 2);
 
 /**
  * Get all translations of the term (including children)
