@@ -104,17 +104,63 @@ function pllx_widgets_init() {
 add_action('widgets_init', 'pllx_widgets_init');
 
 /**
+ *   Remove duplicated posts tanslated
+ */
+function pllx_filter_the_posts($post_list) {
+    global $locale;
+    global $polylang;
+	
+	$cur_lang = pll_current_language();
+
+  // Index post_list
+  $post_index=array();
+  foreach ($post_list as $post) { $post_index[] = $post->ID; }
+
+  // Filter post_list
+  foreach ($post_list as $k => $post) {
+	$post_lang = $polylang->model->post->get_language($post->ID);
+	// Check if current post in current locale
+	//if ($post_lang && ($post_lang->locale != $locale)) 
+	if ($post_lang && ($post_lang->slug != $cur_lang)) 
+	{
+		// If not, get translations
+		$trans = $polylang->model->post->get_translations($post->ID);
+		if ($trans && (count($trans) > 1))
+		{
+			unset($trans[$post_lang->slug]);
+			// S'il existe une traduction, on supprime le post
+			foreach($trans as $slug => $post_id){
+				// Skip current
+				if ($post_id != $post->ID) {
+					// Test if in list
+					if (in_array($post_id, $post_index)) {
+						// Found, deleting
+						unset($post_list[$k]);
+					}
+				}
+				
+			}
+		}
+	}
+	 
+  }
+  //var_dump($post_list);*/
+  return(array_values($post_list));
+}
+add_filter('the_posts','pllx_filter_the_posts');
+
+
+/**
  * Modifies the SQL query for posts
  */
 function pllx_posts_where($where) {
     global $polylang;
-
-    if ($polylang && preg_match("/post_type = 'post'/", $where) && !is_tax('language')) {
+	if ($polylang && preg_match("/post_type = 'post'/", $where) && !is_tax('language')) {
         $slugs = pllx_enabled_languages();
 
         if (count($slugs) > 0) {
 
-            if (is_home()) {
+            if (is_home() ||  is_front_page() ) {
                 $languages = array();
 
                 foreach ($slugs as $slug) {
@@ -123,15 +169,25 @@ function pllx_posts_where($where) {
 
                 return preg_replace('/\.term_taxonomy_id IN \([^\)]*\)/', '.term_taxonomy_id IN (' . implode(',', $languages) . ')', $where);
 
-            } else if (is_category() || is_tag() || is_tax()) {
+            } else if (is_category() || is_tag() || is_tax() ) {
                 $term         = get_queried_object();
                 $translations = pllx_get_translations_with_children($term->term_id, $term->taxonomy, $slugs);
 
                 if (count($translations) > 0) {
                     return preg_replace('/\.term_taxonomy_id IN \([^\)]*\)/', '.term_taxonomy_id IN (' . implode(',', $translations) . ')', $where);
                 }
-            }
+            } else if ((preg_match('/\.term_taxonomy_id IN \(([^\)]*)\)/', $where, $matches))) {
+				$term_ids = $matches[1];
+                $translations = array();
+				foreach(explode(",",$term_ids) as $term_id) {	
+					$term = get_term( $term_id );
+					$translations = array_merge($translations, pllx_get_translations_with_children($term->term_id, $term->taxonomy, $slugs));
+				}
 
+                if (count($translations) > 0) {
+                    return preg_replace('/\.term_taxonomy_id IN \([^\)]*\)/', '.term_taxonomy_id IN (' . implode(',', $translations) . ')', $where);
+                }
+			}
         }
     }
 
@@ -176,7 +232,7 @@ function pllx_nav_menu_objects($items) {
         if ($item->object == 'page') {
             $page = get_post($item->object_id);
             if ($page) {
-                $language = $polylang->model->get_post_language($item->object_id);
+                $language = $polylang->model->post->get_language($item->object_id);
                 if ($language && ($language->locale != $locale)) {
                     $translation_id = pll_get_post($item->object_id, $locale);
                     if ($translation_id) {
@@ -223,7 +279,7 @@ function pllx_nav_menu_objects($items) {
 
     return $items;
 }
-add_filter('wp_nav_menu_objects', 'pllx_nav_menu_objects');
+//add_filter('wp_nav_menu_objects', 'pllx_nav_menu_objects');
 
 /**
  * Showing empty categories by default (as their translations can contain posts)
@@ -244,7 +300,7 @@ function pllx_get_page_on_front($post_id) {
     global $polylang;
 
     if ($polylang && $post_id && !is_admin()) {
-        $language = $polylang->model->get_post_language($post_id);
+        $language = $polylang->model->post->get_language($post_id);
         if ($language && ($language->locale != $locale)) {
             $translated_id = pll_get_post($post_id, $locale);
             if ($translated_id) {
@@ -311,7 +367,7 @@ function pllx_get_translations_with_children($term_id, $taxonomy, $languages) {
     global $polylang;
 
     $translations      = array();
-    $term_translations = $polylang->model->get_translations('term', $term_id);
+    $term_translations = $polylang->model->term->get_translations($term_id);
 
     foreach ($term_translations as $language => $term_id) {
         if (in_array($language, $languages)) {
@@ -378,7 +434,9 @@ function pllx_browser_languages() {
 
     if (isset($_SERVER['HTTP_ACCEPT_LANGUAGE'])) {
         foreach (explode(',', $_SERVER['HTTP_ACCEPT_LANGUAGE']) as $accepted_language) {
-            list($lang, $q) = explode(';', $accepted_language);
+			$lang_comps = explode(';', $accepted_language);
+			if (count($lang_comps) > 1) { list($lang, $q) = $lang_comps; }
+				else { $lang = $lang_comps[0]; $q=1; }
 
             if ($q && preg_match('/\bq=([0-9]+(?:\.[0-9]+)?)/', $q, $m)) {
                 $q = floatval($m[1]);
