@@ -6,6 +6,7 @@
  * Version: 1.0
  * Author: Andriy Lesyuk
  * Author URI: http://www.andriylesyuk.com
+ * Text Domain: language-mix
  * License: GPL2
  */
 
@@ -33,6 +34,8 @@ define('PLL_PLUGIN_NAME', 'polylang/polylang.php');
 
 require_once(ABSPATH . 'wp-admin/includes/plugin.php');
 
+$author_rules_backup = array();
+
 /**
  * Iterrupt plugin activation if Polylang is not activated/installed
  */
@@ -53,6 +56,14 @@ function pllx_admin_init() {
     }
 }
 add_action('admin_init', 'pllx_admin_init');
+
+/**
+ * Load translations
+ */
+function pllx_loaded() {
+    load_plugin_textdomain('language-mix', false, dirname(plugin_basename(__FILE__)) . '/languages/');
+}
+add_action('plugins_loaded', 'pllx_loaded');
 
 /**
  * Handles POST requests
@@ -114,7 +125,7 @@ function pllx_posts_where($where) {
 
             } else if (is_category() || is_tag() || is_tax()) {
                 $term         = get_queried_object();
-                $translations = pllx_get_translations_with_children($term->term_id, $term->taxonomy);
+                $translations = pllx_get_translations_with_children($term->term_id, $term->taxonomy, $slugs);
 
                 if (count($translations) > 0) {
                     return preg_replace('/\.term_taxonomy_id IN \([^\)]*\)/', '.term_taxonomy_id IN (' . implode(',', $translations) . ')', $where);
@@ -232,7 +243,7 @@ function pllx_get_page_on_front($post_id) {
     global $locale;
     global $polylang;
 
-    if ($polylang && $post_id) {
+    if ($polylang && $post_id && !is_admin()) {
         $language = $polylang->model->get_post_language($post_id);
         if ($language && ($language->locale != $locale)) {
             $translated_id = pll_get_post($post_id, $locale);
@@ -264,25 +275,57 @@ function pllx_category_featured_post($post_id, $term_id) {
 add_filter('get_category_featured_post', 'pllx_category_featured_post', 10, 2);
 
 /**
+ * Make a copy of author rules
+ */
+function pllx_backup_author_rules($rules) {
+    global $author_rules_backup;
+    $author_rules_backup = $rules;
+    return $rules;
+}
+add_filter('author_rewrite_rules', 'pllx_backup_author_rules');
+
+/**
+ * Restore author rules
+ */
+function pllx_rewrite_rules($rules) {
+    global $author_rules_backup;
+    return $author_rules_backup + $rules;
+}
+add_filter('rewrite_rules_array', 'pllx_rewrite_rules');
+
+# TODO same for date and search? etc?
+
+/**
+ * Remove link from author URL
+ */
+function pllx_author_link($link) {
+    global $polylang;
+    return $polylang->links_model->remove_language_from_link($link);
+}
+add_filter('author_link', 'pllx_author_link', 30);
+
+/**
  * Get all translations of the term (including children)
  */
-function pllx_get_translations_with_children($term_id, $taxonomy) {
+function pllx_get_translations_with_children($term_id, $taxonomy, $languages) {
     global $polylang;
 
     $translations      = array();
     $term_translations = $polylang->model->get_translations('term', $term_id);
 
     foreach ($term_translations as $language => $term_id) {
-        $term = get_term($term_id, $taxonomy);
-        if ($term) {
-            $translations[] = $term->term_taxonomy_id;
+        if (in_array($language, $languages)) {
+            $term = get_term($term_id, $taxonomy);
+            if ($term) {
+                $translations[] = $term->term_taxonomy_id;
 
-            $term_children  = get_term_children($term_id, $taxonomy);
+                $term_children  = get_term_children($term_id, $taxonomy);
 
-            foreach ($term_children as $term_child) {
-                $term = get_term($term_child, $taxonomy);
-                if ($term) {
-                    $translations[] = $term->term_taxonomy_id;
+                foreach ($term_children as $term_child) {
+                    $term = get_term($term_child, $taxonomy);
+                    if ($term) {
+                        $translations[] = $term->term_taxonomy_id;
+                    }
                 }
             }
         }

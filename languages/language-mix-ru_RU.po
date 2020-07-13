@@ -1,0 +1,50 @@
+# Copyright (C) 2014 Language Mix
+# This file is distributed under the same license as the Language Mix package.
+msgid ""
+msgstr ""
+"Project-Id-Version: Language Mix 1.0\n"
+"Report-Msgid-Bugs-To: http://wordpress.org/tag/language-mix\n"
+"POT-Creation-Date: 2014-01-12 20:04:28+00:00\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: 2014-01-14 23:37+0300\n"
+"Last-Translator: \n"
+"Language-Team: Andriy Lesyuk <s-andy@andriylesyuk.com>\n"
+"X-Generator: Poedit 1.5.4\n"
+"Language: Russian\n"
+
+#: language-mix.php:42
+msgid "Language Mix plugin requires Polylang to be installed and activated."
+msgstr ""
+"Для работы плагина Language Mix нужно установить и активировать Polylang."
+
+#: widgets/languages.php:10 widgets/languages.php:22
+msgid "Languages"
+msgstr "Языки"
+
+#: widgets/languages.php:11
+msgid "Allows to configure shown languages"
+msgstr "Позволяет настроить отображение языков"
+
+#: widgets/translations.php:10 widgets/translations.php:26
+msgid "Translations"
+msgstr "Переводы"
+
+#: widgets/translations.php:11
+msgid "Easy switching between translations"
+msgstr "Легкое переключение между переводами"
+
+#. Plugin Name of the plugin/theme
+msgid "Language Mix"
+msgstr "Language Mix"
+
+#. Description of the plugin/theme
+msgid "This plugin unhides contents which are in languages you speak."
+msgstr ""
+"Этот плагин показывает содержимое, написанное на языках, которыми вы "
+"владеете."
+
+#. Author of the plugin/theme
+msgid "Andriy Lesyuk"
+msgstr "Андрей Лесюк"

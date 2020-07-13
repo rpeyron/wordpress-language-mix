@@ -5,7 +5,7 @@
 class WP_Widget_Languages extends WP_Widget {
 
     public function __construct() {
-        load_textdomain('language-mix', plugin_dir_path(__FILE__) . 'languages/language-mix-' . get_locale() . '.mo');
+        # FIXME load_textdomain('language-mix', plugin_dir_path(__FILE__) . 'languages/language-mix-' . get_locale() . '.mo');
 
         parent::__construct('languages', __('Languages', 'language-mix'),
             array('classname' => 'widget_languages', 'description' => __('Allows to configure shown languages', 'language-mix'))

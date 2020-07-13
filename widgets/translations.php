@@ -5,7 +5,7 @@
 class WP_Widget_Translations extends WP_Widget {
 
     public function __construct() {
-        load_textdomain('language-mix', plugin_dir_path(__FILE__) . 'languages/language-mix-' . get_locale() . '.mo');
+        # FIXME load_textdomain('language-mix', plugin_dir_path(__FILE__) . 'languages/language-mix-' . get_locale() . '.mo');
 
         parent::__construct('translations', __('Translations', 'language-mix'),
             array('classname' => 'widget_translations', 'description' => __('Easy switching between translations', 'language-mix'))

@@ -26,14 +26,21 @@ sent by the user's browser.
 
 Additionally, the plugin comes with two widgets:
 
-* The Languages widget, that can be put on any WordPress page, allows to configure, content in
+* The **Languages** widget, that can be put on any WordPress page, allows to configure, content in
 which languages the user wants to see. The widget saves its settings into cookies.
-* The Translations widget, that can be put on the single content page only (e.g., the post page),
-is an alternative to the Polylang's Language Switcher widget. The difference is that this widget
+* The **Translations** widget, that can be put on the single content page only (e.g., the post page),
+is an alternative to the Polylang's *Language Switcher* widget. The difference is that this widget
 shows links only to translations of the current page (i.e., if no translations are available,
 nothing is shown).
 
-See also: http://projects.andriylesyuk.com/project/wordpress/language-mix
+The [plugin's project](http://projects.andriylesyuk.com/project/wordpress/language-mix) is also
+hosted on the [author's website](http://www.andriylesyuk.com) *(using
+[Redmine](http://www.redmine.org/) and WordPress)*.
+[There](http://projects.andriylesyuk.com/project/wordpress/language-mix) you can read news, report
+bugs, and more.
+
+*For the banner I used [the image](http://www.flickr.com/photos/fdecomite/3288906696/) of
+[Francesco De Comite](http://www.flickr.com/photos/fdecomite/).*
 
 == Installation ==
 
@@ -45,9 +52,33 @@ See also: http://projects.andriylesyuk.com/project/wordpress/language-mix
 == Screenshots ==
 
 1. The Languages widget, which allows to configure shown languages (uses theme)
-2. The Translations widgets, which lets switching between translations (uses theme)
+2. The Translations widget, which lets switching between translations (uses theme)
 
 == Changelog ==
 
 = 1.0 =
 * Initial release
+
+== Issue Tracker ==
+
+Use [this issue tracker](http://projects.andriylesyuk.com/projects/language-mix/issues) to report
+bugs, request features and file other issues.
+
+== Documentation ==
+
+The documentation for the plugin can be found in the
+[Wiki](http://projects.andriylesyuk.com/projects/language-mix/wiki).
+
+== Blog ==
+
+The plugin's project has a blog [here](http://blog.andriylesyuk.com/projects/language-mix/).
+
+== Live Demo ==
+
+I'm using this plugin at [my personal website](http://www.andriylesyuk.com). A translated article
+*(English and Russian)* can be found [here](http://blog.andriylesyuk.com/the-nature-of-euromaidan/).
+
+== Thanks to ==
+
+* [Francesco De Comite](http://www.flickr.com/photos/fdecomite/) for
+[the image](http://www.flickr.com/photos/fdecomite/3288906696/) used as the plugin's banner.
