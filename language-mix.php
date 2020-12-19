@@ -4,7 +4,7 @@
  * Plugin URI: http://projects.andriylesyuk.com/project/wordpress/language-mix
  * Description: This plugin unhides contents which are in languages you speak.
  * Version: 2.0
- * Author: Andriy Lesyuk & R�mi Peyronnet
+ * Author: Andriy Lesyuk & Remi Peyronnet
  * Author URI: http://www.andriylesyuk.com
  * Text Domain: language-mix
  * License: GPL2
@@ -33,6 +33,8 @@ define('PLLX_PARAMETER', 'pllx_language');
 define('PLL_PLUGIN_NAME', 'polylang/polylang.php');
 
 require_once(ABSPATH . 'wp-admin/includes/plugin.php');
+
+require_once('settings.php');
 
 $author_rules_backup = array();
 
@@ -105,7 +107,16 @@ add_action('widgets_init', 'pllx_widgets_init');
 
 /**
  *   Remove duplicated posts tanslated
+ * 
+ * This filter acts after the query and remove unwanted translations.
+ * This was my historical way of de-duplicating contents with language-mix
+ * but there is several issues, especially when using pagination as 
+ * count/offset won't be good. Hence the new version :-)
+ * 
+ * This is left as memory but should not be useful anymore
+ * 
  */
+/*
 function pllx_filter_the_posts($post_list) {
     global $locale;
     global $polylang;
@@ -128,7 +139,7 @@ function pllx_filter_the_posts($post_list) {
 		if ($trans && (count($trans) > 1))
 		{
 			unset($trans[$post_lang->slug]);
-			// S'il existe une traduction, on supprime le post
+			// If a translation exists, we delete the post
 			foreach($trans as $slug => $post_id){
 				// Skip current
 				if ($post_id != $post->ID) {
@@ -144,74 +155,82 @@ function pllx_filter_the_posts($post_list) {
 	}
 	 
   }
-  //var_dump($post_list);*/
   return(array_values($post_list));
 }
-//add_filter('the_posts','pllx_filter_the_posts');
+add_filter('the_posts','pllx_filter_the_posts');
+*/
 
-
-/* Echo variable
- * Description: Uses <pre> and print_r to display a variable in formated fashion
+/**
+ * Get languages to consider 
+ * 
+ * Use options and current language
+ * 
  */
-function echo_log( $what )
-{
-    echo '<pre>'.print_r( $what, true ).'</pre>';
-}
-
 function pllx_get_langs() {
-	$langs = pllx_browser_languages();
+    global $polylang;
+
+    $language_mix_options = get_option( 'language_mix_option_name' );
+    $language_behavior_0 = $language_mix_options['language_behavior_0']; 
+    $forced_languages_1 = $language_mix_options['forced_languages_1']; // Forced languages
+    $use_current_language_2 = $language_mix_options['use_current_language_2']; // Use current language
+
+    // Base is to get browser language preference : we get browser and filter by the one enabled to retain the priority
+    $langs = pllx_browser_languages();
 	$langs_enabled = pllx_enabled_languages();
 	foreach ($langs as $lang => $prio) {
 		if (!in_array( $lang, $langs_enabled )) {
 			unset($langs[$lang]);
 		}
 	}
-	
 
-	arsort($langs, SORT_NUMERIC);
-	/*
-	[
-	  "fr_FR" => 1,
-	  "fr" => 0.9,
-	  "en_US" => 0.8,
-	  "en" => 0.7,
-	]
-	*/
-	error_log("get_excluded_posts - langs : " . print_r($langs, 1));
-	
+    // Use current language : we add the current language with highest priority
+    if ($use_current_language_2) {
+        $langs[pll_current_language()] = 10;
+    }
+   
+    // All : we need to add polylang languages not included in the browser with lower priority
+    if ($language_behavior_0 == 'all') {
+        foreach($polylang->model->get_languages_list() as $poly_lang) {
+            if (!array_key_exists($poly_lang->slug, $langs)) {
+                // Set very low priority based on (reverse) order field
+                $langs[$poly_lang->slug] = ((100 - $poly_lang->term_group) / 10000);
+            }
+        }
+    }
+
+    // Override : we need to add overridden languages not included in the browser with lower priority
+    if ($language_behavior_0 == 'override') {
+        foreach(explode(',',$forced_languages_1) as $i => $l) {
+            if (!array_key_exists($l, $langs)) {
+                // Set very low priority based on (reverse) order field
+                $langs[$l] = ((100 - $i) / 10000);
+            }
+        }
+    }
+
+    // Finaly we sort the array to get proper order
+    arsort($langs, SORT_NUMERIC);
+
+    error_log("pllx_get_langs: " . print_r($langs, 1));
 	return($langs);
 }
 
+/**
+ * Retrieve the list of posts id to exclude to remove duplicated translated 
+ * posts according to language priority given in $langs parameter
+ */
 function pllx_get_excluded_posts($langs) {
 
-	// $taxonomies = get_taxonomies();
+    // Get all translation posts id with the use of terms post_translations
+    // This is probably not the best way to use polylang (use of internal storage)
+    // but should be quicker than any other method, especially for blogs with 
+    // not the majority of posts translated (first use case of this plugin)
 	$tr_terms = get_terms( 'post_translations');
-	/*
-	[
-	  WP_Term {#12208
-		+term_id: 30,
-		+name: "pll_59f861a30dc71",
-		+slug: "pll_59f861a30dc71",
-		+term_group: 0,
-		+term_taxonomy_id: 30,
-		+taxonomy: "post_translations",
-		+description: "a:2:{s:2:"en";i:1996;s:2:"fr";i:1578;}",
-		+parent: 0,
-		+count: 2,
-		+filter: "raw",
-	  },
-	*/
 
 	$exclude_posts = [];
 	foreach ($tr_terms as $tr_term) {
-	   $post_langs = unserialize( $tr_term->description );
-	   /*
-		 [
-		"en" => 1996,
-		"fr" => 1578,
-	  ],
-	   */
-	   if (count($post_langs) > 1) {
+	    $post_langs = unserialize( $tr_term->description );
+	    if (count($post_langs) > 1) {
 		   // Search best lang to keep (by lang preference order)
 		   foreach($langs as $lang=>$prio) {
 				if (array_key_exists($lang, $post_langs)) {
@@ -225,28 +244,36 @@ function pllx_get_excluded_posts($langs) {
 			}
 	   }
 	}
-	error_log("get_excluded_posts - exclude_posts : " . print_r($exclude_posts, 1));
+	// error_log("pllx_get_excluded_posts: " . print_r($exclude_posts, 1));
 	return $exclude_posts;
 }
 
-
-function query_exclude_posts($query, $exclude_posts) {
+/**
+ * Helper function to add posts to exclude to a query
+ */
+function pllx_query_exclude_posts($query, $exclude_posts) {
 	$query_not = $query->get('post__not_in');
 	if (is_array($query_not)) {
 		$query->set('post__not_in', array_merge($query_not, $exclude_posts));
 	} else {
 		$query->set('post__not_in', $exclude_posts);
 	}
-	error_log("get_excluded_posts - exclude_posts : " . print_r($query, 1));
+	// error_log("get_excluded_posts - exclude_posts : " . print_r($query, 1));
 }
 
+/**
+ * This method will alter the query before the run
+ * by excluding duplicate posts according to the language order
+ */
 function pllx_alter_get_posts($query) {
     // Restrict to post & pages (causes problems with other types as menu_order by example)
-    if ( in_array($query->get('post_type'), array('post','page')) ) {
+    $language_mix_options = get_option( 'language_mix_option_name' );
+    $custom_post_types_3 = $language_mix_options['custom_post_types_3']; // Custom post types
+    if ( in_array($query->get('post_type'), explode(',',$custom_post_types_3)) ) {
         // Exclude admin page and restrict on other pages ; ajax is needed for pagination support
-        if ((! ( $query->is_admin() && ! wp_doing_ajax() )   ) && ( $query->is_home() ||  $query->is_front_page()) || wp_doing_ajax() ) {
+        if ((! ( $query->is_admin() && ! wp_doing_ajax() )   ) && ( $query->is_home() ||  $query->is_front_page()) || $query->is_main_query() || wp_doing_ajax() ) {
             $langs = pllx_get_langs();
-            query_exclude_posts($query, pllx_get_excluded_posts($langs));
+            pllx_query_exclude_posts($query, pllx_get_excluded_posts($langs));
             // We need to use lang, if not polylang will translate our excluded post id and ruin our efforts!
             $query->set('lang',implode(',',array_keys($langs)));
         }
@@ -261,11 +288,12 @@ add_action('pre_get_posts','pllx_alter_get_posts',20);
 function pllx_posts_where($where) {
     global $polylang;
 	if ($polylang && preg_match("/post_type = 'post'/", $where) && !is_tax('language')) {
-        $slugs = pllx_enabled_languages();
+        //$slugs = pllx_enabled_languages();
+        $slugs=array_keys(pllx_get_langs());
 
         if (count($slugs) > 0) {
 
-		if ((! ( is_admin() && ! wp_doing_ajax() )   ) && ( is_home() ||  is_front_page()) || wp_doing_ajax() ) {
+		if ((! ( is_admin() && ! wp_doing_ajax() )   ) && ( is_home() ||  is_front_page())  || is_main_query() || wp_doing_ajax() ) {
                 $languages = array();
 
                 foreach ($slugs as $slug) {
