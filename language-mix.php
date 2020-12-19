@@ -4,7 +4,7 @@
  * Plugin URI: http://projects.andriylesyuk.com/project/wordpress/language-mix
  * Description: This plugin unhides contents which are in languages you speak.
  * Version: 2.0
- * Author: Andriy Lesyuk & Remi Peyronnet
+ * Author: Andriy Lesyuk & R�mi Peyronnet
  * Author URI: http://www.andriylesyuk.com
  * Text Domain: language-mix
  * License: GPL2
@@ -241,11 +241,15 @@ function query_exclude_posts($query, $exclude_posts) {
 }
 
 function pllx_alter_get_posts($query) {
-    if ((! ( is_admin() && ! wp_doing_ajax() )   ) && ( is_home() ||  is_front_page()) || wp_doing_ajax() ) {
-		$langs = pllx_get_langs();
-		query_exclude_posts($query, pllx_get_excluded_posts($langs));
-		// We need to use lang, if not polylang will translate our excluded post id and ruin our efforts!
-		$query->set('lang',implode(',',array_keys($langs)));
+    // Restrict to post & pages (causes problems with other types as menu_order by example)
+    if ( in_array($query->get('post_type'), array('post','page')) ) {
+        // Exclude admin page and restrict on other pages ; ajax is needed for pagination support
+        if ((! ( $query->is_admin() && ! wp_doing_ajax() )   ) && ( $query->is_home() ||  $query->is_front_page()) || wp_doing_ajax() ) {
+            $langs = pllx_get_langs();
+            query_exclude_posts($query, pllx_get_excluded_posts($langs));
+            // We need to use lang, if not polylang will translate our excluded post id and ruin our efforts!
+            $query->set('lang',implode(',',array_keys($langs)));
+        }
     }
 }
 add_action('pre_get_posts','pllx_alter_get_posts',20);
