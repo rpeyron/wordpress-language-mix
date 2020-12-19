@@ -3,8 +3,8 @@
  * Plugin Name: Language Mix
  * Plugin URI: http://projects.andriylesyuk.com/project/wordpress/language-mix
  * Description: This plugin unhides contents which are in languages you speak.
- * Version: 1.0
- * Author: Andriy Lesyuk
+ * Version: 2.0
+ * Author: Andriy Lesyuk & Remi Peyronnet
  * Author URI: http://www.andriylesyuk.com
  * Text Domain: language-mix
  * License: GPL2
@@ -147,7 +147,108 @@ function pllx_filter_the_posts($post_list) {
   //var_dump($post_list);*/
   return(array_values($post_list));
 }
-add_filter('the_posts','pllx_filter_the_posts');
+//add_filter('the_posts','pllx_filter_the_posts');
+
+
+/* Echo variable
+ * Description: Uses <pre> and print_r to display a variable in formated fashion
+ */
+function echo_log( $what )
+{
+    echo '<pre>'.print_r( $what, true ).'</pre>';
+}
+
+function pllx_get_langs() {
+	$langs = pllx_browser_languages();
+	$langs_enabled = pllx_enabled_languages();
+	foreach ($langs as $lang => $prio) {
+		if (!in_array( $lang, $langs_enabled )) {
+			unset($langs[$lang]);
+		}
+	}
+	
+
+	arsort($langs, SORT_NUMERIC);
+	/*
+	[
+	  "fr_FR" => 1,
+	  "fr" => 0.9,
+	  "en_US" => 0.8,
+	  "en" => 0.7,
+	]
+	*/
+	error_log("get_excluded_posts - langs : " . print_r($langs, 1));
+	
+	return($langs);
+}
+
+function pllx_get_excluded_posts($langs) {
+
+	// $taxonomies = get_taxonomies();
+	$tr_terms = get_terms( 'post_translations');
+	/*
+	[
+	  WP_Term {#12208
+		+term_id: 30,
+		+name: "pll_59f861a30dc71",
+		+slug: "pll_59f861a30dc71",
+		+term_group: 0,
+		+term_taxonomy_id: 30,
+		+taxonomy: "post_translations",
+		+description: "a:2:{s:2:"en";i:1996;s:2:"fr";i:1578;}",
+		+parent: 0,
+		+count: 2,
+		+filter: "raw",
+	  },
+	*/
+
+	$exclude_posts = [];
+	foreach ($tr_terms as $tr_term) {
+	   $post_langs = unserialize( $tr_term->description );
+	   /*
+		 [
+		"en" => 1996,
+		"fr" => 1578,
+	  ],
+	   */
+	   if (count($post_langs) > 1) {
+		   // Search best lang to keep (by lang preference order)
+		   foreach($langs as $lang=>$prio) {
+				if (array_key_exists($lang, $post_langs)) {
+					// We found the best lang post, we keep it and will exclude the others
+					unset($post_langs[$lang]);
+					break;
+				}
+		   }
+			foreach ( $post_langs as $post_id) {
+				$exclude_posts[] = $post_id;
+			}
+	   }
+	}
+	error_log("get_excluded_posts - exclude_posts : " . print_r($exclude_posts, 1));
+	return $exclude_posts;
+}
+
+
+function query_exclude_posts($query, $exclude_posts) {
+	$query_not = $query->get('post__not_in');
+	if (is_array($query_not)) {
+		$query->set('post__not_in', array_merge($query_not, $exclude_posts));
+	} else {
+		$query->set('post__not_in', $exclude_posts);
+	}
+	error_log("get_excluded_posts - exclude_posts : " . print_r($query, 1));
+}
+
+function pllx_alter_get_posts($query) {
+    if ((! ( is_admin() && ! wp_doing_ajax() )   ) && ( is_home() ||  is_front_page()) || wp_doing_ajax() ) {
+		$langs = pllx_get_langs();
+		query_exclude_posts($query, pllx_get_excluded_posts($langs));
+		// We need to use lang, if not polylang will translate our excluded post id and ruin our efforts!
+		$query->set('lang',implode(',',array_keys($langs)));
+    }
+}
+add_action('pre_get_posts','pllx_alter_get_posts',20);
 
 
 /**
@@ -160,7 +261,7 @@ function pllx_posts_where($where) {
 
         if (count($slugs) > 0) {
 
-            if (is_home() ||  is_front_page() ) {
+		if ((! ( is_admin() && ! wp_doing_ajax() )   ) && ( is_home() ||  is_front_page()) || wp_doing_ajax() ) {
                 $languages = array();
 
                 foreach ($slugs as $slug) {
