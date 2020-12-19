@@ -4,6 +4,13 @@
  * at http://jeremyhixon.com/wp-tools/option-page/
  */
 
+$pllx_options_defaults = [
+	'language_behavior_0' =>  'all',
+	'forced_languages_1' => 'en',
+	'use_current_language_2' => 'use_current_language_2',
+	'custom_post_types_3' => 'post,page'
+];
+
 class LanguageMix {
 	private $language_mix_options;
 
@@ -46,12 +53,7 @@ class LanguageMix {
 			'language_mix_option_name', // option_name
             [
                 'sanitize_callback' => array( $this, 'language_mix_sanitize' ), 
-                'default' => [
-                    'language_behavior_0' =>  'all',
-                    'forced_languages_1' => 'en',
-                    'use_current_language_2' => 'use_current_language_2',
-                    'custom_post_types_3' => 'post,page'
-                ]
+                'default' => $pllx_options_defaults
             ]
 		);
 

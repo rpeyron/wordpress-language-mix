@@ -169,7 +169,7 @@ add_filter('the_posts','pllx_filter_the_posts');
 function pllx_get_langs() {
     global $polylang;
 
-    $language_mix_options = get_option( 'language_mix_option_name' );
+    $language_mix_options = get_option( 'language_mix_option_name', $pllx_options_defaults);
     $language_behavior_0 = $language_mix_options['language_behavior_0']; 
     $forced_languages_1 = $language_mix_options['forced_languages_1']; // Forced languages
     $use_current_language_2 = $language_mix_options['use_current_language_2']; // Use current language
@@ -258,7 +258,7 @@ function pllx_query_exclude_posts($query, $exclude_posts) {
 	} else {
 		$query->set('post__not_in', $exclude_posts);
 	}
-	// error_log("get_excluded_posts - exclude_posts : " . print_r($query, 1));
+	//error_log("get_excluded_posts - exclude_posts : " . print_r($query, 1));
 }
 
 /**
@@ -267,11 +267,12 @@ function pllx_query_exclude_posts($query, $exclude_posts) {
  */
 function pllx_alter_get_posts($query) {
     // Restrict to post & pages (causes problems with other types as menu_order by example)
-    $language_mix_options = get_option( 'language_mix_option_name' );
+    $language_mix_options = get_option( 'language_mix_option_name', $pllx_options_defaults);
     $custom_post_types_3 = $language_mix_options['custom_post_types_3']; // Custom post types
-    if ( in_array($query->get('post_type'), explode(',',$custom_post_types_3)) ) {
+    error_log("pllx_alter_get_posts:" . $query->get('post_type'));
+    if (($query->get('post_type')=='') || in_array($query->get('post_type'), explode(',',$custom_post_types_3)) ) {
         // Exclude admin page and restrict on other pages ; ajax is needed for pagination support
-        if ((! ( $query->is_admin() && ! wp_doing_ajax() )   ) && ( $query->is_home() ||  $query->is_front_page()) || $query->is_main_query() || wp_doing_ajax() ) {
+        if ((! ( $query->is_admin() && ! wp_doing_ajax() )   ) && ( $query->is_home() ||  $query->is_front_page()) /*|| $query->is_main_query()*/ || wp_doing_ajax() ) {
             $langs = pllx_get_langs();
             pllx_query_exclude_posts($query, pllx_get_excluded_posts($langs));
             // We need to use lang, if not polylang will translate our excluded post id and ruin our efforts!
@@ -293,7 +294,7 @@ function pllx_posts_where($where) {
 
         if (count($slugs) > 0) {
 
-		if ((! ( is_admin() && ! wp_doing_ajax() )   ) && ( is_home() ||  is_front_page())  || is_main_query() || wp_doing_ajax() ) {
+		if ((! ( is_admin() && ! wp_doing_ajax() )   ) && ( is_home() ||  is_front_page()) /* || is_main_query()*/ || wp_doing_ajax() ) {
                 $languages = array();
 
                 foreach ($slugs as $slug) {
