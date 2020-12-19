@@ -48,12 +48,14 @@ class LanguageMix {
 	<?php }
 
 	public function language_mix_page_init() {
+		global $pllx_options_defaults;
+
 		register_setting(
 			'language_mix_option_group', // option_group
 			'language_mix_option_name', // option_name
             [
                 'sanitize_callback' => array( $this, 'language_mix_sanitize' ), 
-                'default' => $pllx_options_defaults
+                'default' => $pllx_options_defaults,
             ]
 		);
 

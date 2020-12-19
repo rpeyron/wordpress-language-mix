@@ -225,20 +225,28 @@ function pllx_get_excluded_posts($langs) {
     // This is probably not the best way to use polylang (use of internal storage)
     // but should be quicker than any other method, especially for blogs with 
     // not the majority of posts translated (first use case of this plugin)
-	$tr_terms = get_terms( 'post_translations');
+    $tr_terms = get_terms( 'post_translations');
+    
+    // Ignore special posts
+    $ignore_ids =[  get_option( 'page_on_front' ),  get_option( 'page_for_posts' ) ];
 
 	$exclude_posts = [];
 	foreach ($tr_terms as $tr_term) {
 	    $post_langs = unserialize( $tr_term->description );
 	    if (count($post_langs) > 1) {
-		   // Search best lang to keep (by lang preference order)
-		   foreach($langs as $lang=>$prio) {
+            // Test if no special page
+            if (count(array_intersect($ignore_ids, $post_langs)) > 0) {
+                continue;
+            }
+
+		    // Search best lang to keep (by lang preference order)
+		    foreach($langs as $lang=>$prio) {
 				if (array_key_exists($lang, $post_langs)) {
 					// We found the best lang post, we keep it and will exclude the others
 					unset($post_langs[$lang]);
 					break;
 				}
-		   }
+		    }
 			foreach ( $post_langs as $post_id) {
 				$exclude_posts[] = $post_id;
 			}
