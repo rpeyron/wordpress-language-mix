@@ -4,8 +4,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Language Mix 1.0\n"
 "Report-Msgid-Bugs-To: http://wordpress.org/tag/language-mix\n"
-"POT-Creation-Date: 2020-12-19 19:20+0100\n"
-"PO-Revision-Date: 2020-12-19 19:29+0100\n"
+"POT-Creation-Date: 2020-12-20 22:09+0100\n"
+"PO-Revision-Date: 2020-12-20 22:14+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: fr_FR\n"
@@ -15,49 +15,93 @@ msgstr ""
 "X-Generator: Poedit 2.4\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
-#: language-mix.php:47
+#: language-mix.php:50
 msgid "Language Mix plugin requires Polylang to be installed and activated."
 msgstr "Le plugin Language Mix nécessite que Polylang soit installé et actif."
 
-#: settings.php:17 settings.php:18
+#: settings.php:52 settings.php:53
 msgid "Language Mix"
 msgstr "Language Mix"
 
-#: settings.php:60
+#: settings.php:92
 msgid "Settings"
 msgstr "Paramètres"
 
-#: settings.php:67
+#: settings.php:99
+msgid "Translate categories in menus"
+msgstr "Traduire les catégories des menus"
+
+#: settings.php:107
+msgid "Replacing front page"
+msgstr "Remplace la page d'accueil"
+
+#: settings.php:115
+msgid "Category featured post"
+msgstr "Billets mis en avant par catégories"
+
+#: settings.php:123
+msgid "Hide redundant translations"
+msgstr "Masque les traductions redondantes"
+
+#: settings.php:131
 msgid "Language behavior"
 msgstr "Comportement multi-langues"
 
-#: settings.php:75
+#: settings.php:139
 msgid "Forced languages"
 msgstr "Langues forcées"
 
-#: settings.php:83
+#: settings.php:147
 msgid "Use current language"
 msgstr "Utiliser la langue courante"
 
-#: settings.php:91
+#: settings.php:155
 msgid "Custom post types"
 msgstr "Types de post à utiliser"
 
-#: settings.php:125
+#: settings.php:190
 msgid "All languages"
 msgstr "Toutes les langues"
 
-#: settings.php:127
+#: settings.php:192
 msgid "Only the languages allowed by the browser"
 msgstr "Seulement les langues autorisées par le navigateur"
 
-#: settings.php:129
+#: settings.php:194
 msgid "The languages allowed by the browser plus the ones that are forced"
 msgstr "Les langues autorisées par le navigateur et les langues forcées"
 
-#: settings.php:141
+#: settings.php:206
 msgid "Allow always the current language with higher priority"
 msgstr "Toujours autoriser la langue courante avec une priorité haute"
+
+#: settings.php:220
+msgid ""
+"Enable translating categories in menu according to the most wanted language"
+msgstr ""
+"Active la traduction des catégories dans les menus selon la langue préférée "
+"de l'utilisateur"
+
+#: settings.php:227
+msgid "Enable replacing translation for featured post of a category"
+msgstr ""
+"Active le remplacement par la traduction du billet mis en avant d'une "
+"catégorie"
+
+#: settings.php:234
+msgid ""
+"Enable replacing the front page by the most wanted language translation."
+msgstr ""
+"Active le remplacement de la page d'accueil par la traduction dans la "
+"langue préférée de l'utilisateur"
+
+#: settings.php:241
+msgid ""
+"Enable hiding other translations than the most wanted one for a post, thus "
+"avoiding duplicate contents."
+msgstr ""
+"Active le masquage des traductions des pages dans des langues autres que la "
+"langue préférée de l'utilisateur lorsqu'elle existe."
 
 #: widgets/languages.php:10 widgets/languages.php:22
 msgid "Languages"
@@ -76,7 +120,9 @@ msgid "Easy switching between translations"
 msgstr "Bascule facile entre les traductions"
 
 #~ msgid "This plugin unhides contents which are in languages you speak."
-#~ msgstr "Ce plugin permet l'affichage des contenus qui sont dans les langues que vous parlez."
+#~ msgstr ""
+#~ "Ce plugin permet l'affichage des contenus qui sont dans les langues que "
+#~ "vous parlez."
 
 #~ msgid "Andriy Lesyuk"
 #~ msgstr "Andriy Lesyuk"

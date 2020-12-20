@@ -4,12 +4,40 @@
  * at http://jeremyhixon.com/wp-tools/option-page/
  */
 
-$pllx_options_defaults = [
-	'language_behavior_0' =>  'all',
-	'forced_languages_1' => 'en',
-	'use_current_language_2' => 'use_current_language_2',
-	'custom_post_types_3' => 'post,page'
+$pllx_options_original = [
+	'feature_translate_cat_in_menus' => 'true',
+	'feature_replace_front_page' => 'true',
+	'feature_category_featured_post' => 'true',
+	'feature_remove_duplicate_posts' => 'false',
+	'language_behaviour' =>  'browser',
+	'forced_languages' => '',
+	'use_current_language' => 'false',
+	'custom_post_types' => 'post,page',
 ];
+
+$pllx_options_recommended = [
+	'feature_translate_cat_in_menus' => 'false',
+	'feature_replace_front_page' => 'true',
+	'feature_category_featured_post' => 'true',
+	'feature_remove_duplicate_posts' => 'true',
+	'language_behaviour' =>  'all',
+	'forced_languages' => 'en',
+	'use_current_language' => 'true',
+	'custom_post_types' => 'post,page',
+];
+
+$pllx_options_defaults = $pllx_options_recommended;
+//$pllx_options_defaults = $pllx_options_original;
+
+/* 
+ * Retrieve this value with:
+ * $language_mix_options = get_option( 'language_mix_option_name' ); // Array of All Options
+ * $language_behaviour = $language_mix_options['language_behaviour']; // Language behavior
+ * $forced_languages = $language_mix_options['forced_languages']; // Forced languages
+ * $use_current_language = $language_mix_options['use_current_language']; // Use current language
+ * $custom_post_types = $language_mix_options['custom_post_types']; // Custom post types
+ */
+
 
 class LanguageMix {
 	private $language_mix_options;
@@ -67,54 +95,87 @@ class LanguageMix {
 		);
 
 		add_settings_field(
-			'language_behavior_0', // id
+			'feature_translate_cat_in_menus', // id
+			__('Translate categories in menus', 'language-mix'), // title
+			array( $this, 'feature_translate_cat_in_menus_callback' ), // callback
+			'language-mix-admin', // page
+			'language_mix_setting_section' // section
+		);
+
+		add_settings_field(
+			'feature_replace_front_page', // id
+			__('Replacing front page', 'language-mix'), // title
+			array( $this, 'feature_replace_front_page_callback' ), // callback
+			'language-mix-admin', // page
+			'language_mix_setting_section' // section
+		);
+
+		add_settings_field(
+			'feature_category_featured_post', // id
+			__('Category featured post', 'language-mix'), // title
+			array( $this, 'feature_category_featured_post_callback' ), // callback
+			'language-mix-admin', // page
+			'language_mix_setting_section' // section
+		);
+
+		add_settings_field(
+			'feature_remove_duplicate_posts', // id
+			__('Hide redundant translations', 'language-mix'), // title
+			array( $this, 'feature_remove_duplicate_posts_callback' ), // callback
+			'language-mix-admin', // page
+			'language_mix_setting_section' // section
+		);
+
+		add_settings_field(
+			'language_behaviour', // id
 			__('Language behavior', 'language-mix'), // title
-			array( $this, 'language_behavior_0_callback' ), // callback
+			array( $this, 'language_behaviour_callback' ), // callback
 			'language-mix-admin', // page
 			'language_mix_setting_section' // section
 		);
 
 		add_settings_field(
-			'forced_languages_1', // id
+			'forced_languages', // id
 			__('Forced languages', 'language-mix'), // title
-			array( $this, 'forced_languages_1_callback' ), // callback
+			array( $this, 'forced_languages_callback' ), // callback
 			'language-mix-admin', // page
 			'language_mix_setting_section' // section
 		);
 
 		add_settings_field(
-			'use_current_language_2', // id
+			'use_current_language', // id
 			__('Use current language', 'language-mix'), // title
-			array( $this, 'use_current_language_2_callback' ), // callback
+			array( $this, 'use_current_language_callback' ), // callback
 			'language-mix-admin', // page
 			'language_mix_setting_section' // section
 		);
 
 		add_settings_field(
-			'custom_post_types_3', // id
+			'custom_post_types', // id
 			__('Custom post types', 'language-mix'), // title
-			array( $this, 'custom_post_types_3_callback' ), // callback
+			array( $this, 'custom_post_types_callback' ), // callback
 			'language-mix-admin', // page
 			'language_mix_setting_section' // section
 		);
+
 	}
 
 	public function language_mix_sanitize($input) {
 		$sanitary_values = array();
-		if ( isset( $input['language_behavior_0'] ) ) {
-			$sanitary_values['language_behavior_0'] = $input['language_behavior_0'];
+		if ( isset( $input['language_behaviour'] ) ) {
+			$sanitary_values['language_behaviour'] = $input['language_behaviour'];
 		}
 
-		if ( isset( $input['forced_languages_1'] ) ) {
-			$sanitary_values['forced_languages_1'] = sanitize_text_field( $input['forced_languages_1'] );
+		if ( isset( $input['forced_languages'] ) ) {
+			$sanitary_values['forced_languages'] = sanitize_text_field( $input['forced_languages'] );
 		}
 
-		if ( isset( $input['use_current_language_2'] ) ) {
-			$sanitary_values['use_current_language_2'] = $input['use_current_language_2'];
+		if ( isset( $input['use_current_language'] ) ) {
+			$sanitary_values['use_current_language'] = $input['use_current_language'];
 		}
 
-		if ( isset( $input['custom_post_types_3'] ) ) {
-			$sanitary_values['custom_post_types_3'] = sanitize_text_field( $input['custom_post_types_3'] );
+		if ( isset( $input['custom_post_types'] ) ) {
+			$sanitary_values['custom_post_types'] = sanitize_text_field( $input['custom_post_types'] );
 		}
 
 		return $sanitary_values;
@@ -124,45 +185,64 @@ class LanguageMix {
 		
 	}
 
-	public function language_behavior_0_callback() {
-		?> <fieldset><?php $checked = ( isset( $this->language_mix_options['language_behavior_0'] ) && $this->language_mix_options['language_behavior_0'] === 'all' ) ? 'checked' : '' ; ?>
-		<label for="language_behavior_0-0"><input type="radio" name="language_mix_option_name[language_behavior_0]" id="language_behavior_0-0" value="all" <?php echo $checked; ?>> <?php echo __('All languages', 'language-mix'); ?></label><br>
-		<?php $checked = ( isset( $this->language_mix_options['language_behavior_0'] ) && $this->language_mix_options['language_behavior_0'] === 'browser' ) ? 'checked' : '' ; ?>
-		<label for="language_behavior_0-1"><input type="radio" name="language_mix_option_name[language_behavior_0]" id="language_behavior_0-1" value="browser" <?php echo $checked; ?>> <?php echo __('Only the languages allowed by the browser', 'language-mix'); ?></label><br>
-		<?php $checked = ( isset( $this->language_mix_options['language_behavior_0'] ) && $this->language_mix_options['language_behavior_0'] === 'override' ) ? 'checked' : '' ; ?>
-		<label for="language_behavior_0-2"><input type="radio" name="language_mix_option_name[language_behavior_0]" id="language_behavior_0-2" value="override" <?php echo $checked; ?>> <?php echo __('The languages allowed by the browser plus the ones that are forced', 'language-mix'); ?></label></fieldset> <?php
+	public function language_behaviour_callback() {
+		?> <fieldset><?php $checked = ( isset( $this->language_mix_options['language_behaviour'] ) && $this->language_mix_options['language_behaviour'] === 'all' ) ? 'checked' : '' ; ?>
+		<label for="language_behaviour-0"><input type="radio" name="language_mix_option_name[language_behaviour]" id="language_behaviour-0" value="all" <?php echo $checked; ?>> <?php echo __('All languages', 'language-mix'); ?></label><br>
+		<?php $checked = ( isset( $this->language_mix_options['language_behaviour'] ) && $this->language_mix_options['language_behaviour'] === 'browser' ) ? 'checked' : '' ; ?>
+		<label for="language_behaviour-1"><input type="radio" name="language_mix_option_name[language_behaviour]" id="language_behaviour-1" value="browser" <?php echo $checked; ?>> <?php echo __('Only the languages allowed by the browser', 'language-mix'); ?></label><br>
+		<?php $checked = ( isset( $this->language_mix_options['language_behaviour'] ) && $this->language_mix_options['language_behaviour'] === 'override' ) ? 'checked' : '' ; ?>
+		<label for="language_behaviour-2"><input type="radio" name="language_mix_option_name[language_behaviour]" id="language_behaviour-2" value="override" <?php echo $checked; ?>> <?php echo __('The languages allowed by the browser plus the ones that are forced', 'language-mix'); ?></label></fieldset> <?php
 	}
 
-	public function forced_languages_1_callback() {
+	public function forced_languages_callback() {
 		printf(
-			'<input class="regular-text" type="text" name="language_mix_option_name[forced_languages_1]" id="forced_languages_1" value="%s">',
-			isset( $this->language_mix_options['forced_languages_1'] ) ? esc_attr( $this->language_mix_options['forced_languages_1']) : ''
+			'<input class="regular-text" type="text" name="language_mix_option_name[forced_languages]" id="forced_languages" value="%s">',
+			isset( $this->language_mix_options['forced_languages'] ) ? esc_attr( $this->language_mix_options['forced_languages']) : ''
 		);
 	}
 
-	public function use_current_language_2_callback() {
+	public function use_current_language_callback() {
 		printf(
-			'<input type="checkbox" name="language_mix_option_name[use_current_language_2]" id="use_current_language_2" value="use_current_language_2" %s> <label for="use_current_language_2">' . __('Allow always the current language with higher priority', 'language-mix') . '</label>',
-			( isset( $this->language_mix_options['use_current_language_2'] ) && $this->language_mix_options['use_current_language_2'] === 'use_current_language_2' ) ? 'checked' : ''
+			'<input type="checkbox" name="language_mix_option_name[use_current_language]" id="use_current_language" value="true" %s> <label for="use_current_language">' . __('Allow always the current language with higher priority', 'language-mix') . '</label>',
+			( isset( $this->language_mix_options['use_current_language'] ) && $this->language_mix_options['use_current_language'] === 'true' ) ? 'checked' : ''
 		);
 	}
 
-	public function custom_post_types_3_callback() {
+	public function custom_post_types_callback() {
 		printf(
-			'<input class="regular-text" type="text" name="language_mix_option_name[custom_post_types_3]" id="custom_post_types_3" value="%s">',
-			isset( $this->language_mix_options['custom_post_types_3'] ) ? esc_attr( $this->language_mix_options['custom_post_types_3']) : ''
+			'<input class="regular-text" type="text" name="language_mix_option_name[custom_post_types]" id="custom_post_types" value="%s">',
+			isset( $this->language_mix_options['custom_post_types'] ) ? esc_attr( $this->language_mix_options['custom_post_types']) : ''
+		);
+	}
+
+	public function feature_translate_cat_in_menus_callback() {
+		printf(
+			'<input type="checkbox" name="language_mix_option_name[feature_translate_cat_in_menus]" id="feature_translate_cat_in_menus" value="true" %s> <label for="feature_translate_cat_in_menus">' . __('Enable translating categories in menu according to the most wanted language', 'language-mix') . '</label>',
+			( isset( $this->language_mix_options['feature_translate_cat_in_menus'] ) && $this->language_mix_options['feature_translate_cat_in_menus'] === 'true' ) ? 'checked' : ''
+		);
+	}
+
+	public function feature_category_featured_post_callback() {
+		printf(
+			'<input type="checkbox" name="language_mix_option_name[feature_category_featured_post]" id="feature_category_featured_post" value="true" %s> <label for="feature_category_featured_post">' . __('Enable replacing translation for featured post of a category', 'language-mix') . '</label>',
+			( isset( $this->language_mix_options['feature_category_featured_post'] ) && $this->language_mix_options['feature_category_featured_post'] === 'true' ) ? 'checked' : ''
+		);
+	}
+
+	public function feature_replace_front_page_callback() {
+		printf(
+			'<input type="checkbox" name="language_mix_option_name[feature_replace_front_page]" id="feature_replace_front_page" value="true" %s> <label for="feature_replace_front_page">' . __('Enable replacing the front page by the most wanted language translation.', 'language-mix') . '</label>',
+			( isset( $this->language_mix_options['feature_replace_front_page'] ) && $this->language_mix_options['feature_replace_front_page'] === 'true' ) ? 'checked' : ''
+		);
+	}
+
+	public function feature_remove_duplicate_posts_callback() {
+		printf(
+			'<input type="checkbox" name="language_mix_option_name[feature_remove_duplicate_posts]" id="feature_remove_duplicate_posts" value="true" %s> <label for="feature_remove_duplicate_posts">' . __('Enable hiding other translations than the most wanted one for a post, thus avoiding duplicate contents.', 'language-mix') . '</label>',
+			( isset( $this->language_mix_options['feature_remove_duplicate_posts'] ) && $this->language_mix_options['feature_remove_duplicate_posts'] === 'true' ) ? 'checked' : ''
 		);
 	}
 
 }
 if ( is_admin() )
 	$language_mix = new LanguageMix();
-
-/* 
- * Retrieve this value with:
- * $language_mix_options = get_option( 'language_mix_option_name' ); // Array of All Options
- * $language_behavior_0 = $language_mix_options['language_behavior_0']; // Language behavior
- * $forced_languages_1 = $language_mix_options['forced_languages_1']; // Forced languages
- * $use_current_language_2 = $language_mix_options['use_current_language_2']; // Use current language
- * $custom_post_types_3 = $language_mix_options['custom_post_types_3']; // Custom post types
- */

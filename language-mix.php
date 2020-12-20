@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: Language Mix
+ * Plugin Name: Language Mix 2
  * Plugin URI: http://projects.andriylesyuk.com/project/wordpress/language-mix
  * Description: This plugin unhides contents which are in languages you speak.
  * Version: 2.0
@@ -35,6 +35,9 @@ define('PLL_PLUGIN_NAME', 'polylang/polylang.php');
 require_once(ABSPATH . 'wp-admin/includes/plugin.php');
 
 require_once('settings.php');
+
+$language_mix_options = get_option( 'language_mix_option_name', $pllx_options_defaults);
+
 
 $author_rules_backup = array();
 
@@ -168,11 +171,8 @@ add_filter('the_posts','pllx_filter_the_posts');
  */
 function pllx_get_langs() {
     global $polylang;
+    global $language_mix_options;
 
-    $language_mix_options = get_option( 'language_mix_option_name', $pllx_options_defaults);
-    $language_behavior_0 = $language_mix_options['language_behavior_0']; 
-    $forced_languages_1 = $language_mix_options['forced_languages_1']; // Forced languages
-    $use_current_language_2 = $language_mix_options['use_current_language_2']; // Use current language
 
     // Base is to get browser language preference : we get browser and filter by the one enabled to retain the priority
     $langs = pllx_browser_languages();
@@ -184,12 +184,12 @@ function pllx_get_langs() {
 	}
 
     // Use current language : we add the current language with highest priority
-    if ($use_current_language_2) {
+    if ($language_mix_options['use_current_language']) {
         $langs[pll_current_language()] = 10;
     }
    
     // All : we need to add polylang languages not included in the browser with lower priority
-    if ($language_behavior_0 == 'all') {
+    if ($language_mix_options['language_behaviour'] === 'all') {
         foreach($polylang->model->get_languages_list() as $poly_lang) {
             if (!array_key_exists($poly_lang->slug, $langs)) {
                 // Set very low priority based on (reverse) order field
@@ -199,8 +199,8 @@ function pllx_get_langs() {
     }
 
     // Override : we need to add overridden languages not included in the browser with lower priority
-    if ($language_behavior_0 == 'override') {
-        foreach(explode(',',$forced_languages_1) as $i => $l) {
+    if ($language_mix_options['language_behaviour'] === 'override') {
+        foreach(explode(',',$language_mix_options['forced_languages']) as $i => $l) {
             if (!array_key_exists($l, $langs)) {
                 // Set very low priority based on (reverse) order field
                 $langs[$l] = ((100 - $i) / 10000);
@@ -274,13 +274,11 @@ function pllx_query_exclude_posts($query, $exclude_posts) {
  * by excluding duplicate posts according to the language order
  */
 function pllx_alter_get_posts($query) {
+    global $language_mix_options;
     // Restrict to post & pages (causes problems with other types as menu_order by example)
-    $language_mix_options = get_option( 'language_mix_option_name', $pllx_options_defaults);
-    $custom_post_types_3 = $language_mix_options['custom_post_types_3']; // Custom post types
-    error_log("pllx_alter_get_posts:" . $query->get('post_type'));
-    if (($query->get('post_type')=='') || in_array($query->get('post_type'), explode(',',$custom_post_types_3)) ) {
+    if (($query->get('post_type')=='') || in_array($query->get('post_type'), explode(',',$language_mix_options['custom_post_types'])) ) {
         // Exclude admin page and restrict on other pages ; ajax is needed for pagination support
-        if ((! ( $query->is_admin() && ! wp_doing_ajax() )   ) && ( $query->is_home() ||  $query->is_front_page()) /*|| $query->is_main_query()*/ || wp_doing_ajax() ) {
+        if ((! ( $query->is_admin() && ! wp_doing_ajax() )   ) && ( $query->is_home() ||  $query->is_front_page())  || wp_doing_ajax() ) {
             $langs = pllx_get_langs();
             pllx_query_exclude_posts($query, pllx_get_excluded_posts($langs));
             // We need to use lang, if not polylang will translate our excluded post id and ruin our efforts!
@@ -288,8 +286,9 @@ function pllx_alter_get_posts($query) {
         }
     }
 }
-add_action('pre_get_posts','pllx_alter_get_posts',20);
-
+if ($language_mix_options['feature_remove_duplicate_posts'] === 'true') { 
+    add_action('pre_get_posts','pllx_alter_get_posts',20); 
+}
 
 /**
  * Modifies the SQL query for posts
@@ -302,7 +301,7 @@ function pllx_posts_where($where) {
 
         if (count($slugs) > 0) {
 
-		if ((! ( is_admin() && ! wp_doing_ajax() )   ) && ( is_home() ||  is_front_page()) /* || is_main_query()*/ || wp_doing_ajax() ) {
+		if ((! ( is_admin() && ! wp_doing_ajax() )   ) && ( is_home() ||  is_front_page())  || wp_doing_ajax() ) {
                 $languages = array();
 
                 foreach ($slugs as $slug) {
@@ -421,7 +420,9 @@ function pllx_nav_menu_objects($items) {
 
     return $items;
 }
-//add_filter('wp_nav_menu_objects', 'pllx_nav_menu_objects');
+if ($language_mix_options['feature_translate_cat_in_menus'] === 'true') { 
+    add_filter('wp_nav_menu_objects', 'pllx_nav_menu_objects');
+}
 
 /**
  * Showing empty categories by default (as their translations can contain posts)
@@ -453,7 +454,9 @@ function pllx_get_page_on_front($post_id) {
 
     return $post_id;
 }
-add_filter('option_page_on_front', 'pllx_get_page_on_front');
+if ($language_mix_options['feature_replace_front_page'] === 'true') { 
+    add_filter('option_page_on_front', 'pllx_get_page_on_front');
+}
 
 /**
  * Looks for translations for the category featured post
@@ -470,7 +473,9 @@ function pllx_category_featured_post($post_id, $term_id) {
     }
     return $post_id;
 }
-add_filter('get_category_featured_post', 'pllx_category_featured_post', 10, 2);
+if ($language_mix_options['feature_category_featured_post'] === 'true') { 
+    add_filter('get_category_featured_post', 'pllx_category_featured_post', 10, 2);
+}
 
 /**
  * Make a copy of author rules
