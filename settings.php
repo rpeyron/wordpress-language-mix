@@ -178,6 +178,22 @@ class LanguageMix {
 		if ( isset( $input['custom_post_types'] ) ) {
 			$sanitary_values['custom_post_types'] = sanitize_text_field( $input['custom_post_types'] );
 		}
+		
+		if ( isset( $input['feature_translate_cat_in_menus'] ) ) {
+			$sanitary_values['feature_translate_cat_in_menus'] = sanitize_text_field( $input['feature_translate_cat_in_menus'] );
+		}
+
+		if ( isset( $input['feature_replace_front_page'] ) ) {
+			$sanitary_values['feature_replace_front_page'] = sanitize_text_field( $input['feature_replace_front_page'] );
+		}
+
+		if ( isset( $input['feature_category_featured_post'] ) ) {
+			$sanitary_values['feature_category_featured_post'] = sanitize_text_field( $input['feature_category_featured_post'] );
+		}
+
+		if ( isset( $input['feature_remove_duplicate_posts'] ) ) {
+			$sanitary_values['feature_remove_duplicate_posts'] = sanitize_text_field( $input['feature_remove_duplicate_posts'] );
+		}
 
 		return $sanitary_values;
 	}
