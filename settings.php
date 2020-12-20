@@ -57,14 +57,15 @@ class LanguageMix {
 		);
 	}
 
+
 	public function language_mix_create_admin_page() {
+		
 		$this->language_mix_options = get_option( 'language_mix_option_name' ); ?>
 
 		<div class="wrap">
 			<h2>Language Mix</h2>
 			<p></p>
 			<?php settings_errors(); ?>
-
 			<form method="post" action="options.php">
 				<?php
 					settings_fields( 'language_mix_option_group' );
@@ -182,7 +183,29 @@ class LanguageMix {
 	}
 
 	public function language_mix_section_info() {
-		
+		global $pllx_options_defaults;
+		global $pllx_options_original;
+		global $pllx_options_recommended;
+
+		?>
+		<script type="text/javascript" >
+		function pllx_set_defaults(defaults) {
+			Object.keys(defaults).forEach(function(key) {
+				if (jQuery('#'+key).is(':checkbox')) {
+					jQuery('#'+key).prop('checked', (defaults[key] ==='true') );
+				} else {
+					jQuery('#'+key).val(defaults[key]);
+				}
+			});
+		}
+		</script>
+		<a href="#" class="button" onclick='javascript: pllx_set_defaults(<?php echo json_encode($pllx_options_defaults) ?>);'>
+			<?php echo __('Reset to default', 'language-mix'); ?></a>
+		<a href="#" class="button" onclick='javascript: pllx_set_defaults(<?php echo json_encode($pllx_options_original) ?>);'>
+			<?php echo __('Set to original settings', 'language-mix'); ?></a>
+		<a href="#" class="button" onclick='javascript: pllx_set_defaults(<?php echo json_encode($pllx_options_recommended) ?>);'>
+			<?php echo __('Set to recommended settings', 'language-mix'); ?></a>
+		<?php
 	}
 
 	public function language_behaviour_callback() {
