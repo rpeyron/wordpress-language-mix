@@ -1,14 +1,15 @@
 === Language Mix ===
-Contributors: s-andy
+Contributors: s-andy, rpeyron
 Donate link: https://load.payoneer.com/LoadToPage.aspx?email=s-andy@andriylesyuk.com
 Tags: multilingual, widget, polylang, cookies, browser languages, translations
 Requires at least: 3.5.1
-Tested up to: 3.7.1
-Stable tag: 1.0
+Tested up to: 5.6
+Stable tag: 2.0
 License: GPLv2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-This plugin modifies the behavior of the Polylang plugin making it show contents of all languages, which are believed to be known by the visitor.
+This plugin modifies the behavior of the Polylang plugin making it show contents of all languages, 
+which are believed to be known by the visitor.
 
 == Description ==
 
@@ -22,7 +23,11 @@ The Language Mix plugin for WordPress is an extension to the
 [Chouby](http://profiles.wordpress.org/chouby/), that implements a new approach of the multilingual
 content handling. Its main feature is that it does not hide content in other languages, which are
 known to the visitor! The plugin determines, which languages the user can read, using HTTP headers
-sent by the user's browser.
+sent by the user's browser, or a list of languages you want.
+
+If a content exists in more than one language the user can read, the plugin will choose the 
+best according to the user's preference, and hide the other ones, so that no duplicate contents
+will be displayed.
 
 Additionally, the plugin comes with two widgets:
 
@@ -55,6 +60,12 @@ bugs, and more.
 2. The Translations widget, which lets switching between translations (uses theme)
 
 == Changelog ==
+
+= 2.0 =
+* Contributions from Remi Peyronnet (https://github.com/rpeyron/wordpress-language-mix):
+  - Feature to choose the best language for a content and hide other translations
+  - Ability to force the current language of the page
+  - Settings page
 
 = 1.0 =
 * Initial release
