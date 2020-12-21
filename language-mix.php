@@ -173,6 +173,10 @@ function pllx_get_langs() {
     global $polylang;
     global $language_mix_options;
 
+    // If original behaviour, no need to compute much more
+    if ( ($language_mix_options['language_behaviour'] === 'all') && (! $language_mix_options['use_current_language']))     {
+        return (pllx_enabled_languages());
+    }
 
     // Base is to get browser language preference : we get browser and filter by the one enabled to retain the priority
     $langs = pllx_browser_languages();
@@ -211,8 +215,9 @@ function pllx_get_langs() {
     // Finaly we sort the array to get proper order
     arsort($langs, SORT_NUMERIC);
 
-    error_log("pllx_get_langs: " . print_r($langs, 1));
-	return($langs);
+    //error_log("pllx_get_langs: " . print_r($langs, 1));
+
+	return(array_keys($langs));
 }
 
 /**
@@ -240,7 +245,7 @@ function pllx_get_excluded_posts($langs) {
             }
 
 		    // Search best lang to keep (by lang preference order)
-		    foreach($langs as $lang=>$prio) {
+		    foreach($langs as $lang) {
 				if (array_key_exists($lang, $post_langs)) {
 					// We found the best lang post, we keep it and will exclude the others
 					unset($post_langs[$lang]);
@@ -271,7 +276,10 @@ function pllx_query_exclude_posts($query, $exclude_posts) {
 
 /**
  * This method will alter the query before the run
- * by excluding duplicate posts according to the language order
+ * by excluding duplicate posts according to the language order.
+ * 
+ * Results are cached for better performance 
+ * (see wordpress doc about persistent caching : https://developer.wordpress.org/reference/classes/wp_object_cache/#persistent-caching)
  */
 function pllx_alter_get_posts($query) {
     global $language_mix_options;
@@ -280,9 +288,22 @@ function pllx_alter_get_posts($query) {
         // Exclude admin page and restrict on other pages ; ajax is needed for pagination support
         if ((! ( $query->is_admin() && ! wp_doing_ajax() )   ) && ( $query->is_home() ||  $query->is_front_page())  || wp_doing_ajax() ) {
             $langs = pllx_get_langs();
-            pllx_query_exclude_posts($query, pllx_get_excluded_posts($langs));
+            $langs_str = implode(',',$langs);
+            // Handle caching of the posts list
+            $pllx_cache = wp_cache_get("pllx_cache_get_posts");
+            if ($pllx_cache && is_array($pllx_cache) && array_key_exists($langs_str, $pllx_cache)) {
+                $excluded_posts = $pllx_cache[$langs_str];
+                //error_log("pllx_alter_get_posts (cached):" . print_r($pllx_cache,1));
+            } else {
+                if (!is_array($pllx_cache)) { $pllx_cache = []; }
+                $excluded_posts = pllx_get_excluded_posts($langs);
+                $pllx_cache[$langs_str] = $excluded_posts;
+                wp_cache_set("pllx_cache_get_posts", $pllx_cache);
+                //error_log("pllx_alter_get_posts (new):" . print_r($pllx_cache,1));
+            }
+            pllx_query_exclude_posts($query, $excluded_posts);
             // We need to use lang, if not polylang will translate our excluded post id and ruin our efforts!
-            $query->set('lang',implode(',',array_keys($langs)));
+            $query->set('lang',$langs_str);
         }
     }
 }
@@ -291,13 +312,31 @@ if ($language_mix_options['feature_remove_duplicate_posts'] === 'true') {
 }
 
 /**
+ * Refresh the pllx filter post cache by renewing strings that have been 
+ * already loaded in the cache.
+ * But it seems the cache is cleared before (never seen this working)
+ */
+function pllx_refresh_cache_post_save($unused_id) {
+    $pllx_cache = wp_cache_get("pllx_cache_get_posts");
+    if ($pllx_cache && is_array($pllx_cache)) {
+        foreach($pllx_cache as $langs_str => $dummy) {
+            $excluded_posts = pllx_get_excluded_posts(explode(',',$langs_str));
+            $pllx_cache[$langs_str] = $excluded_posts;
+        }
+        wp_cache_set("pllx_cache_get_posts", $pllx_cache);
+    }
+    //error_log("pllx_refresh_cache_post_save:" . print_r($pllx_cache,1));
+}
+add_action( 'save_post', 'pllx_refresh_cache_post_save', 2000);
+
+/**
  * Modifies the SQL query for posts
  */
 function pllx_posts_where($where) {
     global $polylang;
 	if ($polylang && preg_match("/post_type = 'post'/", $where) && !is_tax('language')) {
         //$slugs = pllx_enabled_languages();
-        $slugs=array_keys(pllx_get_langs());
+        $slugs=pllx_get_langs();
 
         if (count($slugs) > 0) {
 
